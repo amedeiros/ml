@@ -47,7 +47,7 @@ def convertIpProtocol(ipProtocol):
     
     return protocol
 
-def writeRanges(protocol, writer, cidrRange):
+def writeRanges(writer, protocol, cidrRange):
     for ipRange in cidrRange:
         if ipRange == '0.0.0.0/0':
             writeFailRow(writer, protocol)
@@ -85,7 +85,7 @@ def prepare():
     Normalizing labels into integer representations.
     Status 1   = Pass
     Status 0   = Fail
-    Protocol 0 = Unkown
+    Protocol 0 = Unkown/None
     Protocol 1 = TCP
     Protocol 2 = UDP
     GlobalIP 0 = None
@@ -99,14 +99,12 @@ def prepare():
         writer.writeheader()
 
         for alert in jsonAlerts:
-            if 'securityGroup' not in alert['metadata']['data']: next
+            if 'securityGroup' not in alert['metadata']['data']: continue
 
             for ipPermission in alert['metadata']['data']['securityGroup']['ipPermissions']:
-                if ipPermission['fromPort'] is None or ipPermission['toPort'] is None: next
-
                 protocol  = convertIpProtocol(ipPermission['ipProtocol'])
                 cidrRange = combineCidrs(ipPermission)
-                writeRanges(protocol, writer, cidrRange)
+                writeRanges(writer, protocol, cidrRange)
 
 prepare()
 
