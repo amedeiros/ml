@@ -2,6 +2,10 @@ import json
 import csv
 import pandas
 import pprint
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression as Model
 
 def train(features, target):
@@ -106,6 +110,16 @@ def prepare():
                 cidrRange = combineCidrs(ipPermission)
                 writeRanges(writer, protocol, cidrRange)
 
+def autolabel(rects):
+    """
+    Attach a text label above each bar displaying its height
+    """
+    for rect in rects:
+        height = rect.get_height()
+        ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
+                '%d' % int(height),
+                ha='center', va='bottom')
+
 prepare()
 
 data_train, data_test = split_train_and_test()
@@ -116,5 +130,31 @@ feature_train = data_train.drop('status', axis=1)
 model      = train(feature_train, data_train['status'])
 prediction = predict(model, feature_test)
 
-pprint.pprint(prediction)
-pprint.pprint(model.score(feature_test, data_test['status']))
+# pprint.pprint(prediction)
+# pprint.pprint(model.score(feature_test, data_test['status']))
+
+actualPassCount = data_test[data_test['status'] == 1]['status'].count()
+actualFailCount = data_test[data_test['status'] == 0]['status'].count()
+
+predictedPassCount = 0
+predictedFailCount = 0
+
+for result in prediction:
+    if result == 1: predictedPassCount += 1
+    else: predictedFailCount += 1
+
+fig, ax = plt.subplots()
+ax.set_ylabel('Total')
+ax.set_title('Actual vs predicted on globally open ports')
+ax.set_xticks((0, 0.5, 1, 1.5))
+ax.set_xticklabels(('Actual Pass', 'Predicted Pass', 'Actual Fail', 'Predicted Fail'))
+ax.set_ylim(0, 200)
+
+width = 0.25 # width of bar
+
+autolabel(ax.bar(0, actualPassCount, width, color='g'))      # Actual    pass count
+autolabel(ax.bar(0.5, predictedPassCount, width, color='r')) # Predicred pass count
+autolabel(ax.bar(1, actualFailCount, width, color='g'))      # Actual    fail count
+autolabel(ax.bar(1.5, predictedFailCount, width, color='r')) # Predicted fail count
+
+plt.savefig('result.png')
